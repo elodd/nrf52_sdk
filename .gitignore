@@ -1,0 +1,25 @@
+# Build output
+build/
+*.o
+*.d
+*.elf
+*.hex
+*.bin
+*.map
+*.lst
+
+# Editor and IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+compile_commands.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debugger and flashing logs
+JLink.log
+nrfjprog.log
