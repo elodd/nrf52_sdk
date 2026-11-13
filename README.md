@@ -1,5 +1,7 @@
 # nRF52 SDK
 
+[![CI](https://github.com/elodd/nrf52_sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/elodd/nrf52_sdk/actions/workflows/ci.yml)
+
 Bare-metal C SDK for the nRF52840: I2C, UART logging, pin interrupts, a periodic timer, and a sensor scheduler.
 It is the base library for the applications in `apps/`: it builds as the static library
 `build/libnrf52sdk.a`, and each app links against it. It uses no vendor SDK, only the

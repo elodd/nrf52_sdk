@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Host unit tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitize: ["0", "1"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tests
+        working-directory: .
+        run: make test SANITIZE=${{ matrix.sanitize }}
+
+  firmware:
+    name: Firmware build (nRF52840)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ARM toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-none-eabi
+
+      - name: Build firmware
+        run: make
+
+      - name: Report memory usage
+        run: make size
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: sensor_app
+          path: |
+            build/sensor_app.hex
+            build/sensor_app.elf
+            build/sensor_app.map
