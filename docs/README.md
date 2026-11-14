@@ -44,7 +44,6 @@ nrf52_sdk/
 ├── tests/          host unit tests (make test)
 ├── sim/            host simulation of the hardware (make sim)
 ├── docs/           documentation (this folder)
-├── config/         prompt template for AI coding sessions
 ├── .github/        CI workflow (host tests, firmware build)
 ├── Makefile
 └── .gitignore

@@ -1,3 +1,6 @@
+# private
+config/
+
 # Build output
 build/
 *.o
