@@ -12,6 +12,8 @@ nrf52_sdk/
 ├── apps/             # applications (default: sensor_app)
 ├── tests/            # host unit tests
 ├── sim/              # host simulator
+├── config/           # AI prompt template
+├── .github/          # CI workflow
 └── docs/ Makefile
 ```
 
@@ -71,7 +73,12 @@ nrf52_sdk/
 ├── docs/
 │   ├── README.md                Overview, build, quick start, limitations
 │   ├── API.md                   API reference
+│   ├── BUILD.md                 Build, flash, log and test guide
 │   └── STRUCTURE.md             This file
+├── config/
+│   └── prompt_template.md       Prompt template for AI coding sessions
+├── .github/workflows/
+│   └── ci.yml                   CI: host tests (with and without sanitizers), firmware build
 ├── Makefile                     Firmware build (ARM); make test runs tests/, make sim runs sim/
 ├── README.md                    Entry point
 └── .gitignore

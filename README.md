@@ -27,6 +27,8 @@ Listed from the top layer down. Each layer depends only on the layers below it.
 | [`tests/`](tests) | Host unit tests that run without hardware. They cover the sensor scheduler, the logger and the I2C driver, with hardware calls replaced by doubles in `mocks.c`. Register-level code in `src/` is not covered and must be checked on a board. |
 | [`sim/`](sim) | Host simulation of the hardware layer. `make sim` runs the app on your computer and prints its log to the terminal. See [sim/README.md](sim/README.md). |
 | [`docs/`](docs) | Overview, API reference, build guide, and structure and layering rules. |
+| [`config/`](config) | `prompt_template.md`: prompt template for AI coding sessions, with the project rules and a task form to fill in. |
+| [`.github/`](.github) | `workflows/ci.yml`: runs the host tests with and without sanitizers and builds the firmware on every push and pull request. |
 | `build/` | Generated output: object files, the SDK library `libnrf52sdk.a`, `sensor_app.elf`, `.hex`, `.map`, and the simulator binary in `build/sim/`. `make clean` removes it, and git ignores it. |
 
 See [docs/STRUCTURE.md](docs/STRUCTURE.md) for the module map, interrupt ownership, naming conventions, and how to add a module or driver.
