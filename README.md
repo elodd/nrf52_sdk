@@ -12,6 +12,7 @@ C library from the ARM toolchain (newlib-nano).
 - Structure and layering rules: [docs/STRUCTURE.md](docs/STRUCTURE.md)
 - Full build, flash, log, and test guide: [docs/BUILD.md](docs/BUILD.md)
 - Sensor application: [apps/sensor_app](apps/sensor_app)
+- Microphone application (PDM → UART → Yocto): [apps/mic_app](apps/mic_app) and [docs/YOCTO_MIC.md](docs/YOCTO_MIC.md)
 
 ## Folders
 
@@ -19,10 +20,10 @@ Listed from the top layer down. Each layer depends only on the layers below it.
 
 | Folder | Contents |
 |---|---|
-| [`apps/`](apps) | Applications. `sensor_app/main.c` reads an I2C sensor once per second, logs the value over UART and toggles an LED, using only SDK and driver APIs. `make` builds it by default. |
+| [`apps/`](apps) | Applications. `sensor_app/main.c` reads an I2C sensor once per second, logs the value over UART and toggles an LED. `mic_app/main.c` captures PDM microphone samples and logs amplitude statistics over UART (intended for a Yocto Linux receiver). `make` builds `sensor_app` by default. |
 | [`drivers/`](drivers) | Sensor-specific code. `nrf52_i2c_reg_sensor.c` supports an I2C sensor that exposes its value in a register. Drivers use only the public API in `include/`. |
-| [`include/`](include) | The public API, one subfolder per module. The only headers applications include: core (init, millis, delays, GPIO, status codes), I2C (TWIM), UART logging, pin-change interrupts (GPIOTE), periodic timer (RTC), the sensor scheduler, and the driver header. |
-| [`src/`](src) | Register-level implementation of the modules declared in `include/`. With `drivers/`, archived into `build/libnrf52sdk.a`. |
+| [`include/`](include) | The public API, one subfolder per module. The only headers applications include: core (init, millis, delays, GPIO, status codes), I2C (TWIM), UART logging, pin-change interrupts (GPIOTE), periodic timer (RTC), the sensor scheduler, PDM digital microphone, and the driver header. |
+| [`src/`](src) | Register-level implementation of the modules declared in `include/`. |
 | [`platform/`](platform) | Startup and linker script for nRF52840: `startup_nrf52840.c` (vector table, reset handler, data/bss init) and `nrf52840.ld` (1 MB flash at `0x00000000`, 256 KB RAM at `0x20000000`). |
 | [`tests/`](tests) | Host unit tests that run without hardware. They cover the sensor scheduler, the logger and the I2C driver, with hardware calls replaced by doubles in `mocks.c`. Register-level code in `src/` is not covered and must be checked on a board. |
 | [`sim/`](sim) | Host simulation of the hardware layer. `make sim` runs the app on your computer and prints its log to the terminal. See [sim/README.md](sim/README.md). |

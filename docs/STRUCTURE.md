@@ -5,14 +5,13 @@ Bare-metal C SDK for the nRF52840. Strict layers: apps → drivers → public AP
 ```
 nrf52_sdk/
 ├── include/          # public headers only (one folder per module)
-│   ├── core/ twim/ log/ gpiote/ rtc/ sensor/ drivers/
+│   ├── core/ twim/ log/ gpiote/ rtc/ sensor/ pdm/ drivers/
 ├── src/              # register-level .c files (flat)
 ├── drivers/          # sensor drivers (public API only)
 ├── platform/         # startup_nrf52840.c + nrf52840.ld
-├── apps/             # applications (default: sensor_app)
+├── apps/             # applications (sensor_app, mic_app)
 ├── tests/            # host unit tests
 ├── sim/              # host simulator
-├── .github/          # CI workflow
 └── docs/ Makefile
 ```
 
@@ -39,24 +38,28 @@ nrf52_sdk/
 │   │   └── nrf52_rtc.h          Periodic timer
 │   ├── sensor/
 │   │   └── nrf52_sensor.h       Sensor scheduler and registry
+│   ├── pdm/
+│   │   └── nrf52_pdm.h          PDM digital microphone (EasyDMA)
 │   └── drivers/
 │       └── nrf52_i2c_reg_sensor.h   Driver: I2C sensor with a value register
 ├── src/                         Implementation of the modules (register-level code)
 │   ├── nrf52_sdk.c
 │   ├── nrf52_twim.c
-│   ├── nrf52_log.c              Logger: level filter and line format (hardware independent)
-│   ├── nrf52_log_uarte.c        Log transport: UARTE0 registers
-│   ├── nrf52_log_port.h         Private transport interface (firmware, tests, sim)
+│   ├── nrf52_log.c
+│   ├── nrf52_log_uarte.c
+│   ├── nrf52_log_port.h
 │   ├── nrf52_gpiote.c
 │   ├── nrf52_rtc.c
-│   └── nrf52_sensor.c
+│   ├── nrf52_sensor.c
+│   └── nrf52_pdm.c              PDM microphone implementation
 ├── drivers/                     Sensor drivers (use the public API only)
 │   └── nrf52_i2c_reg_sensor.c
 ├── platform/                    Boot and memory layout for nRF52840
 │   ├── startup_nrf52840.c       Vector table, reset handler, data/bss init
 │   └── nrf52840.ld              Memory map: 1 MB flash, 256 KB RAM
 ├── apps/
-│   └── sensor_app/main.c        Sensor application (default build)
+│   ├── sensor_app/main.c        Sensor application (default build)
+│   └── mic_app/main.c           PDM microphone → UART amplitude logger
 ├── tests/                       Host unit tests (no hardware)
 │   ├── test_harness.h           Shared CHECK macro, test-case type, helpers
 │   ├── test_support.h           Test-double control API
@@ -64,7 +67,6 @@ nrf52_sdk/
 │   ├── test_main.c              Runner: clean state before each test, summary
 │   ├── test_driver.c            Suite: I2C register driver
 │   ├── test_sensor.c            Suite: scheduler, registry, data-ready triggers
-│   ├── test_log.c               Suite: log format, levels, truncation
 │   └── Makefile                 make test (add SANITIZE=1 for ASan/UBSan)
 ├── sim/
 │   ├── sim_hal.c                Host simulation of the hardware layer (make sim)
@@ -72,10 +74,7 @@ nrf52_sdk/
 ├── docs/
 │   ├── README.md                Overview, build, quick start, limitations
 │   ├── API.md                   API reference
-│   ├── BUILD.md                 Build, flash, log and test guide
 │   └── STRUCTURE.md             This file
-├── .github/workflows/
-│   └── ci.yml                   CI: host tests (with and without sanitizers), firmware build
 ├── Makefile                     Firmware build (ARM); make test runs tests/, make sim runs sim/
 ├── README.md                    Entry point
 └── .gitignore
@@ -103,31 +102,17 @@ Rules:
 4. Each module's header declares its whole public surface. Anything not in
    `include/` is private to its `.c` file.
 
-## Static library
-
-`make` archives `src/` and `drivers/` into `build/libnrf52sdk.a` and links each app against
-it. `make lib` builds only the library. `build/libnrf52sdk.a` plus `include/` is the
-complete SDK for another project; that project also needs `platform/startup_nrf52840.c`
-and `platform/nrf52840.ld`, which stay out of the library:
-
-```
-apps/<app>/*.o  ─┐
-startup .o  ─────┼─▶ link: -Lbuild -lnrf52sdk ─▶ <app>.elf ─▶ <app>.hex
-libnrf52sdk.a  ──┘   (only the modules the app uses)
-```
-
-A new `.c` file in `src/` or `drivers/` goes into the library automatically.
-
 ## Module map
 
 | Module | Public header | Implementation | Hardware | Used by |
 |---|---|---|---|---|
 | Core | `include/core/nrf52_sdk.h` | `src/nrf52_sdk.c` | SysTick, HFCLK, GPIO, NVIC | everything |
 | TWIM | `include/twim/nrf52_twim.h` | `src/nrf52_twim.c` | TWIM0 | drivers |
-| Log | `include/log/nrf52_log.h` | `src/nrf52_log.c`, transport `src/nrf52_log_uarte.c` | UARTE0 | apps, sensor |
+| Log | `include/log/nrf52_log.h` | `src/nrf52_log.c` | UARTE0 | apps, sensor |
 | GPIOTE | `include/gpiote/nrf52_gpiote.h` | `src/nrf52_gpiote.c` | GPIOTE | sensor (data-ready) |
 | RTC | `include/rtc/nrf52_rtc.h` | `src/nrf52_rtc.c` | RTC1, LFCLK | sensor (scheduler) |
 | Sensor | `include/sensor/nrf52_sensor.h` | `src/nrf52_sensor.c` | none directly | apps, drivers |
+| PDM | `include/pdm/nrf52_pdm.h` | `src/nrf52_pdm.c` | PDM | apps (mic_app) |
 | I2C register driver | `include/drivers/nrf52_i2c_reg_sensor.h` | `drivers/nrf52_i2c_reg_sensor.c` | via TWIM | apps |
 
 ## Interrupt ownership
@@ -170,27 +155,14 @@ Sensor reads never run in an interrupt. Interrupts set a pending flag, and
 ## Tests
 
 `make test` builds `tests/` with the host compiler and runs them. The tests link the real
-sensor scheduler, logger and I2C driver against doubles in `tests/mocks.c` for the timer,
-GPIO interrupt, I2C bus and log transport.
-
-| Suite | Code under test | Doubles used |
-|---|---|---|
-| `test_driver.c` | `drivers/nrf52_i2c_reg_sensor.c` | I2C bus, log transport |
-| `test_sensor.c` | `src/nrf52_sensor.c` | Clock, periodic timer, GPIO interrupt, log transport |
-| `test_log.c` | `src/nrf52_log.c` | Clock, log transport (captures each line) |
-
-The logger's transport is the private interface in `src/nrf52_log_port.h`. On the board it
-is `src/nrf52_log_uarte.c`; in the tests, `mocks.c` stores each line so a test can compare
-it with `mock_log_line()`. `mock_reset()` initializes the logger at level INFO before every
-test.
-
-Register-level code (`src/nrf52_twim.c`, `src/nrf52_gpiote.c`, `src/nrf52_rtc.c`,
-`src/nrf52_log_uarte.c`, `src/nrf52_sdk.c`) is not covered by host tests and must be
-checked on hardware.
+sensor scheduler and the I2C driver against doubles for the timer, GPIO interrupt, I2C
+bus, and logging. Register-level code (`src/nrf52_twim.c`, `src/nrf52_gpiote.c`,
+`src/nrf52_rtc.c`, `src/nrf52_log.c`, `src/nrf52_sdk.c`) is not covered by host tests and
+must be checked on hardware.
 
 ## Simulator
 
-`make sim` links the app, the sensor scheduler, the logger and the drivers with `sim/sim_hal.c`, which
+`make sim` links the app, the sensor scheduler and the drivers with `sim/sim_hal.c`, which
 replaces every register-level module in `src/` with a host version. A new module that
 touches hardware needs a matching host version in `sim/sim_hal.c`, or `make sim` fails to
 link. See [../sim/README.md](../sim/README.md).

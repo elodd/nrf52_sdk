@@ -28,30 +28,11 @@ From the `nrf52_sdk/` folder:
 make
 ```
 
-This builds in three stages:
+This compiles the SDK, the startup code, and `apps/sensor_app`. The output is:
 
-1. Compiles the SDK (`src/`, `drivers/`) and archives it into the static library
-   `build/libnrf52sdk.a`.
-2. Compiles the startup code (`platform/startup_nrf52840.c`) and `apps/sensor_app`.
-3. Links the app and startup objects against the library (`-Lbuild -lnrf52sdk`).
-
-The output is:
-
-- `build/libnrf52sdk.a`: the SDK as a static library
 - `build/sensor_app.elf`: debug image with symbols
 - `build/sensor_app.hex`: image to flash
 - `build/sensor_app.map`: memory map
-
-The linker takes only the library modules the app uses. For example, an app that never
-calls the GPIOTE functions does not include `nrf52_gpiote.o`, and its interrupt slot uses
-the default handler. The startup code is linked directly, not through the library,
-because nothing references the vector table and the linker would leave it out.
-
-To build only the library, for use in another project together with `include/`:
-
-```sh
-make lib
-```
 
 Show memory use:
 
@@ -153,10 +134,7 @@ Expected output:
 [sensor]
   register_rejects_invalid           ok
   ...
-[log]
-  init_uses_tx_pin                   ok
-  ...
-110 checks, 0 failed
+74 checks, 0 failed
 ```
 
 The exit code is 0 when all checks pass, and 1 otherwise.
