@@ -145,3 +145,13 @@ For a chip with conversion or configuration steps, write a new driver that follo
 ## Example
 
 See `apps/sensor_app/main.c`. It uses only the public headers above.
+
+## PDM digital microphone (`pdm/nrf52_pdm.h`)
+
+Mono, 16-bit signed samples at about 16.125 kHz. Blocking: `nrf52_pdm_read()` returns when the buffer is full.
+
+| Function | Purpose |
+|---|---|
+| `nrf52_status_t nrf52_pdm_init(uint16_t clk_pin, uint16_t din_pin)` | Configures CLK (output) and DIN (input), enables the peripheral |
+| `nrf52_status_t nrf52_pdm_read(int16_t *samples, size_t count)` | Records `count` samples (1 to 0x7FFF). Returns `NRF52_ERR_TIMEOUT` on a stall |
+| `void nrf52_pdm_deinit(void)` | Disables the peripheral |

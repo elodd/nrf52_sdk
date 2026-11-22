@@ -22,6 +22,7 @@
 #include "core/nrf52_sdk.h"
 #include "gpiote/nrf52_gpiote.h"
 #include "log/nrf52_log.h"
+#include "pdm/nrf52_pdm.h"
 #include "rtc/nrf52_rtc.h"
 #include "twim/nrf52_twim.h"
 
@@ -274,4 +275,38 @@ void nrf52_log_port_write(const uint8_t *data, size_t len)
     } else {
         fwrite(data, 1, len, stdout);
     }
+}
+
+/* ---- PDM microphone: synthetic triangle wave, no real audio ----------- */
+
+static uint32_t s_pdm_phase;
+static bool s_pdm_ready;
+
+nrf52_status_t nrf52_pdm_init(uint16_t clk_pin, uint16_t din_pin)
+{
+    (void)clk_pin;
+    (void)din_pin;
+    s_pdm_ready = true;
+    return NRF52_OK;
+}
+
+nrf52_status_t nrf52_pdm_read(int16_t *samples, size_t count)
+{
+    if (!s_pdm_ready) {
+        return NRF52_ERR_IO;
+    }
+    if (samples == NULL || count == 0 || count > NRF52_PDM_MAX_SAMPLES) {
+        return NRF52_ERR_PARAM;
+    }
+    for (size_t i = 0; i < count; i++) {
+        int32_t v = (int32_t)((s_pdm_phase * 97U) % 8001U) - 4000;
+        samples[i] = (int16_t)v;
+        s_pdm_phase++;
+    }
+    return NRF52_OK;
+}
+
+void nrf52_pdm_deinit(void)
+{
+    s_pdm_ready = false;
 }

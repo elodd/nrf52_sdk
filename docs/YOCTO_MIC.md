@@ -15,16 +15,16 @@ Connect the UART TX pin (default P0.06) to a serial port on the Yocto Linux syst
 
 ## Yocto side
 
-A minimal layer `meta-mic-stream/` provides a userspace receiver:
+The layer `yoctolayer/` (in this SDK repo) provides a userspace receiver:
 
-- `conf/layer.conf`
-- `recipes-apps/mic-receiver/`
+- `yoctolayer/conf/layer.conf` (collection `mic-stream`, depends on `core`, series `scarthgap`)
+- `yoctolayer/recipes-apps/mic-receiver/` (recipe and `files/mic-receiver.c`)
 
 To use it in a Yocto build:
 
 1. Add the layer to `bblayers.conf`:
    ```
-   BBLAYERS += "/path/to/meta-mic-stream"
+   BBLAYERS += "/path/to/nrf52_sdk/yoctolayer"
    ```
 2. Add the package to your image:
    ```
@@ -39,7 +39,8 @@ The receiver filters and prints lines containing `mic:` so you can see the live 
 
 ## Notes
 
-- PDM pin defaults and gain are placeholders; adjust in `apps/mic_app/main.c` and the driver for your hardware.
-- The current implementation polls the END event. For production use an interrupt on EVENTS_END and double-buffering.
+- PDM pins (CLK P0.25, DIN P0.24) and the 0 dB gain are defaults; adjust them in `apps/mic_app/main.c` and `src/nrf52_pdm.c` for your hardware.
+- The simulator (`make sim APP=apps/mic_app`) uses a synthetic triangle wave, not real audio.
+- The current implementation polls the END event, so samples between two reads are lost. For production use an interrupt on EVENTS_END and double-buffering.
 - Raw binary PCM streaming can be added by writing the buffer directly to the UARTE TX EasyDMA (the existing log module is text-oriented).
 - Register addresses follow the nRF52840 Product Specification; verify against the latest PS if you change clock or mode settings.
